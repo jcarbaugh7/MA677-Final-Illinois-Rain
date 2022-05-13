@@ -1,0 +1,312 @@
+---
+title: "MA 677 Final"
+author: "Jack Carbaugh"
+date: "5/7/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+pacman::p_load("knitr","tinytex", boot,ISLR2, tidyverse,e1071,fitdistrplus, MASS, readxl)
+```
+# Planning
+
+The planning for this project began with reading the relevant sections of Pawitan's In All Likelihood, in order to better understand the example problems. Once completed, the assigned exercises would be attempted. I would mainly follow Pawitan's work, and observe similar examples if I got stuck. It was also helpful to search for R packages to directly calculate some of the tasks. After the exercises, I planned to use the previous examples, mainly 4.27, to begin the Illinois rain analysis. The rain analysis required learning about some distributions, and other common facts about hydrology. Finally, the results would be discussed to think about generalizations and other applications.
+
+# Pawitan Exercise 4.25
+
+From exercise 2.4, it was shown that the $k$th order statistic from a U(0,1) distribution has a distribution of Beta(k, n-k+1). 
+
+```{r, echo = FALSE, warning=FALSE}
+n = 5
+
+med_calc <- function(n,i){
+  med <- (i-1/3)/(n+1/3)
+  return(med)
+}
+
+k <- 1:n
+y <- seq(0, 1, length.out = 51)
+
+plot(y, pbeta(y,1,n-1+1),type = "l", col = 1, xlab = "", ylab = "Fraction of Data", main = "CDF of Standard Uniform Distributed Order Statistics (n=5)")
+  lines(y, pbeta(y,2,n-2+1), col = 2)
+  lines(y, pbeta(y,3,n-3+1), col = 3)
+  lines(y, pbeta(y,4,n-4+1), col = 4)
+  lines(y, pbeta(y,5,n-5+1), col = 5)
+  abline(h = 0.5, col = "yellow")
+  points(med_calc(n,k), rep(0.5,5), col = k, cex = 2)
+  legend(x = "topright", legend = c("k=1", "k=2", "k=3", "k=4", "k=5"), col  = c(1,2,3,4,5), lty = 1, cex = 0.7) 
+  
+
+
+
+```
+The above plot shows the CDFs of the 5 order statistics, based on their appropriate beta distributions. The yellow line is at 0.5, and thus shows where the median of each order statistic would be. The colored dots are calculated based on the approximation $median(U_{(i)}) \approx \frac{i - 1/3}{n + 1/3}$. As can be seen, the approximated medians match up almost exactly with their actual values, with the more extreme values (1 and 5) having slightly more error.
+
+
+
+```{r, echo = FALSE, warning=FALSE}
+n = 10
+k = 1:n
+
+plot(y, pbeta(y,1,n-1+1),type = "l", col = 1, xlab = "", ylab = "Fraction of Data", main = "CDF of Standard Uniform Distributed Order Statistics (n=10)")
+  lines(y, pbeta(y,2,n-2+1), col = 2)
+  lines(y, pbeta(y,3,n-3+1), col = 3)
+  lines(y, pbeta(y,4,n-4+1), col = 4)
+  lines(y, pbeta(y,5,n-5+1), col = 5)
+  lines(y, pbeta(y,6,n-6+1), col = 6)
+  lines(y, pbeta(y,7,n-7+1), col = 7)
+  lines(y, pbeta(y,8,n-8+1), col = 8)
+  lines(y, pbeta(y,9,n-9+1), col = 9)
+  lines(y, pbeta(y,10,n-10+1), col = 10)
+  abline(h = 0.5, col = "yellow")
+  points(med_calc(n,k), rep(0.5,n), col = k, cex = 2)
+  legend(x = "topright", legend = c("1", "2", "3", "4", "5","6", "7", "8", "9", "10"), col  = c(1,2,3,4,5,6,7,8,9,10), lty = 1, cex = 0.7) 
+
+
+```
+
+The above plot shows the exact same concept as before, now with n=10 for the order statistics. Once again, we see that the approximated medians match the actual medians very well.
+
+
+
+
+
+
+# Pawitan Exercise 4.27
+
+```{r, echo = FALSE, warning=FALSE}
+Jan <- c(0.15, 0.25, 0.10, 0.20, 1.85, 1.97, 0.80, 0.20, 0.10, 0.50, 0.82, 0.40, 1.80, 0.20, 1.12, 1.83, 0.45, 3.17, 0.89, 0.31, 0.59, 0.10, 0.10, 0.90, 0.10, 0.25, 0.10, 0.90)
+
+July <- c(0.30, 0.22, 0.10, 0.12, 0.20, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.17, 0.20, 2.80, 0.85, 0.10, 0.10, 1.23, 0.45, 0.30, 0.20, 1.20, 0.10, 0.15, 0.10, 0.20, 0.10, 0.20, 0.35, 0.62, 0.20, 1.22, 0.30, 0.80, 0.15, 1.53, 0.10, 0.20, 0.30, 0.40, 0.23, 0.20, 0.10, 0.10, 0.60, 0.20, 0.50, 0.15, 0.60, 0.30, 0.80, 1.10, 0.20, 0.10, 0.10, 0.10, 0.42, 0.85, 1.60, 0.10, 
+0.25, 0.10, 0.20, 0.10)
+
+
+hist(Jan)
+hist(July)
+
+cat(c("Mean January Rainfall:", round(mean(Jan),2)))
+cat(c("Standard deviation of January Rainfall:", round(sd(Jan),2)))
+cat(c("Skewness of January Rainfall:", round(skewness(Jan),2)))
+
+cat(c("Mean July Rainfall:", round(mean(July),2)))
+cat(c("Standard deviation of July Rainfall,", round(sd(July),2)))
+cat(c("Skewness of July Rainfall:", round(skewness(July),2)))
+
+```
+
+Looking at the summary statistics, we see January had more rainfall per storm on average than July. The rainfall of January's storms was more variable than July's, while the rainfall of July's storms was more right skewed than January's.
+
+```{r, echo = FALSE, warning=FALSE}
+qqnorm(Jan, pch = 1, frame = FALSE,main = "January - Normal Q-Q Plot")
+qqline(Jan, col = "steelblue", lwd = 2)
+
+qqnorm(July, pch = 1, frame = FALSE,main = "July - Normal Q-Q Plot")
+qqline(July, col = "steelblue", lwd = 2)
+
+```
+
+
+Both QQ Plots show a lot of extreme values on the tails. This amount of skewness is characteristic of a right-skewed exponential distribution. Thus, an exponential distribution would be a reasonable for this data. 
+
+
+Fitting a gamma distribution to the January data:
+```{r, echo = FALSE, warning=FALSE}
+fit_jan <- fitdist(Jan, distr = "gamma", method = "mle")
+summary(fit_jan)
+plot(fit_jan)
+
+
+
+```
+
+Fitting a gamma distribution to the July data:
+```{r, echo = FALSE, warning=FALSE}
+fit_july <- fitdist(July, distr = "gamma", method = "mle")
+summary(fit_july)
+plot(fit_july)
+
+```
+```{r, echo = FALSE, warning=FALSE}
+theta <- seq(0,3, 0.1)
+like <- dgamma(8,shape = theta, rate = 1.467650)
+plot(theta, like/max(like),type = "line", main = "Likelihood of Rain Gamma Distribution", ylab = "likelihood")
+
+
+```
+
+Overall, according to the QQ plot, the gamma models seem to work well for both months of the rainstorm data. We see that the two months have similar estimated shape parameters, at 1.05 for January and 1.19 for July. July's estimated rate parameter of 3.04 is higher than January's estimated rate of 1.46, explaining how July's data was less spread. 
+
+
+
+
+# Pawitan Exercise 4.39
+
+```{r, echo = FALSE, warning=FALSE}
+wei <- c(0.4, 1.0, 1.9, 3.0, 6.6, 8.1, 12.1, 26.6, 50.0, 56.0, 70.0, 115.0, 115.0, 119.5, 154.5, 157.0, 175.0, 179.0, 180.0, 406.0, 419.0, 423.0, 440.0, 655.0, 680.0, 1320.0, 4603.0, 5712.0)
+
+hist(wei,main = "Histogram of Weights", xlab = "Weights")
+
+bc <- boxcox(wei ~ 1)
+lambda <- bc$x[which.max(bc$y)]
+
+wei_t <- (wei^lambda - 1)/lambda
+
+qqnorm(wei_t, pch = 1, frame = FALSE)
+qqline(wei_t, col = "steelblue", lwd = 2)
+
+```
+The box-cox transformation showed that a lambda value of about $\frac{10}{99}$ would normalize the dataset. After the transformation, the QQ plot of the data shows the points hugging the normal line, meaning the transformation appears to be successful.
+
+
+
+
+
+
+
+
+# Illinois Rainfall Analysis
+
+```{r, echo = FALSE, warning=FALSE}
+data <- read_excel("Illinois_rain_1960-1964.xlsx")
+flat <- unlist(data, use.names = FALSE)
+flat <- flat[!is.na(flat)]
+
+hist(flat, main = "Histogram of Total Rain Data", xlab = "Total Rainfall")
+
+cat(c("Mean Rainfall:", round(mean(flat),2)))
+cat(c("Standard deviation of Rainfall:", round(sd(flat),2)))
+cat(c("Skewness of Rainfall:", round(skewness(flat),2)))
+
+qqnorm(flat, pch = 1, frame = FALSE)
+qqline(flat, col = "steelblue", lwd = 2)
+
+
+```
+Looking at the histograms of the entire dataset and the individual years, some form of exponential distribution would appear to fit the data well. The summary statistics show a mean near 0, and a high right skewness. This right skewness is confirmed by the QQ plot, and also signals that an exponential distribution may fit this data. Some exponential distributions we can check are the gamma, weibull, and lnorm.
+
+
+```{r, echo = FALSE, warning=FALSE}
+fit_rain1 <- fitdist(flat, distr = "gamma", method = "mle")
+summary(fit_rain1)
+plot(fit_rain1)
+
+fit_rain2 <- fitdist(flat, distr = "weibull", method = "mle")
+summary(fit_rain2)
+plot(fit_rain2)
+
+fit_rain3 <- fitdist(flat, distr = "lnorm", method = "mle")
+summary(fit_rain3)
+plot(fit_rain3)
+
+
+
+```
+For right skewed, exponential data such as this, some potential distributions for the data could be the gamma, weibull, and lnorm. Above, we attempt to fit these 3 using the fitdistrplus package and maximum likelihood estimation for the parameter estimates. From the density and QQ plots, it appears as though the gamma and weibull distributions are potential fits, while the lnorm is not. 
+
+Deciding between the gamma and weibull distributions is a bit tricky. This is especially true since the weibull distribution is already related, being a special case of a generalized gamma distribution, and has similar parameters (shape and scale/rate). The gamma distribution is more well known the weibull distribution, and both densitys appear to be very similar. However, the QQ plot for the weibull is noticeably more linear for the upper values than the gamma, and as well the theoretical cdf matches more closely to the empirical for the lower values. A potential problem for the weibull distribution is the highest value (2.13 inches) is a noticeable outlier, while is not so much for the gamma.
+
+Both distributions appear to fit the Illinois rain data very well, and both are known to model daily rain data well. The gamma distribution was shown to work well for similar data in Pawitan exercise 4.27, and the weibull distribution's usefulness in hydrology has been discussed by Singh (https://link.springer.com/chapter/10.1007/978-94-017-1431-0_12). As both distributions are well known to be useful in modeling similar data, I would prefer to model this Illinois data using the weibull distribution, as it generally fit the data much better than the gamma. The only point of contention is the outlier, but we may be able to consider this point an anomaly in the dataset. Knowing this, we get the following mle estimates for the parameters:
+
+```{r, echo = FALSE, warning=FALSE}
+summary(fit_rain2)
+
+```
+The shape parameter determines the shape of the distribution, while the scale parameter determines how spread out it is. The shape parameter of 0.57 being less than 1 gives the distribution its exponential like look, while the scale value of 0.14 being small keeps the distribution relatively compact. with a high right skew. Overall, I feel quite confident in this distribution and the parameter estimates as the empirical data seems to match it well from the above plots, and the estimates match the wanted shape of the distribution. The errors of the shape and scale parameters being relatively low at 0.03 and 0.02, respectively, is also quite encouraging.
+
+Using this distribution, we can attempt to locate wet years and dry years. 
+
+
+
+```{r, echo = FALSE, warning=FALSE, fig.width=10}
+#x = seq(0,2,0.05)
+#hist(data$`1960`, breaks = 10)
+#lines(x, 48*dweibull(x, shape = 0.57, scale = 0.14))
+
+hist(data$`1960`, breaks = 10, main = "Histogram of 1960 Rainfall", xlab = "Rainfall")
+hist(data$`1961`, breaks = 10, main = "Histogram of 1961 Rainfall", xlab = "Rainfall")
+hist(data$`1962`, breaks = 10, main = "Histogram of 1962 Rainfall", xlab = "Rainfall")
+hist(data$`1963`, breaks = 10, main = "Histogram of 1963 Rainfall", xlab = "Rainfall")
+hist(data$`1964`, breaks = 10, main = "Histogram of 1964 Rainfall", xlab = "Rainfall")
+
+v_0 <- data$`1960`[!is.na(data$`1960`)]
+v_1 <- data$`1961`[!is.na(data$`1961`)]
+v_2 <- data$`1962`[!is.na(data$`1962`)]
+v_3 <- data$`1963`[!is.na(data$`1963`)]
+v_4 <- data$`1964`[!is.na(data$`1964`)]
+
+cat(c("Year 1960, Total Rain:", sum(v_0), ", Max Rainfall:", max(v_0), ", Number of rainy days:", length(v_0), "\n"))
+
+cat(c("Year 1961, Total Rain:", sum(v_1), ", Max Rainfall:", max(v_1), ", Number of rainy days:", length(v_1),"\n"))
+
+cat(c("Year 1962, Total Rain:", sum(v_2), ", Max Rainfall:", max(v_2), ", Number of rainy days:", length(v_2), "\n"))
+
+cat(c("Year 1963, Total Rain:", sum(v_3), ", Max Rainfall:", max(v_3), ", Number of rainy days:", length(v_3),"\n"))
+
+cat(c("Year 1964, Total Rain:", sum(v_4), ", Max Rainfall:", max(v_4),", Number of rainy days:", length(v_4), "\n"))
+
+
+```
+Based off the summary statistics alone, it would seem that both the number of rainy days and the amount of rain in each storm contributes to the wet/dry distinction. 
+
+
+```{r, echo = FALSE, warning=FALSE, fig.width=10}
+shape <- 0.57
+scale <- 0.14
+
+q_0 <- pweibull(v_0, shape, scale)
+hist(q_0, main = "Histogram of Weibull Quantiles - 1960 Rainfall", xlab = "Quantiles")
+abline(h = length(v_0)/10, col = "red")
+
+q_1 <- pweibull(v_1, shape, scale)
+hist(q_1, main = "Histogram of Weibull Quantiles - 1961 Rainfall", xlab = "Quantiles")
+abline(h = length(v_1)/10, col = "red")
+
+q_2 <- pweibull(v_2, shape, scale)
+hist(q_2, main = "Histogram of Weibull Quantiles - 1962 Rainfall", xlab = "Quantiles")
+abline(h = length(v_2)/10, col = "red")
+
+q_3 <- pweibull(v_3, shape, scale)
+hist(q_3, main = "Histogram of Weibull Quantiles - 1963 Rainfall", xlab = "Quantiles")
+abline(h = length(v_3)/10, col = "red")
+
+q_4 <- pweibull(v_4, shape, scale)
+hist(q_4, main = "Histogram of Weibull Quantiles - 1964 Rainfall", xlab = "Quantiles")
+abline(h = length(v_4)/10, col = "red")
+
+
+```
+
+
+Here, the quantile values of each rain measurement based on the weibull(0.57,0.14) distribution are plotted as a histogram. This will allow us to see which years had more or less low-rain storms and high-rain storms. A year that was perfectly average would follow the distribution exactly, and would thus have each bar be approximately the same height. This theoretical average is represented by the red bars.  
+
+In the above histograms, we see that 1960 and 1964 had more low-rain storms than expected, while 1961 had more high-rain storms than expected. 1962 generally stayed at expected values, with a slight lean for low-rain storms. 1963 was rather volatile, with a mix of low-rain and high-rain storms, with fewer mid-rain storms; in general though, 1963 trended towards having more high-rain storms,
+
+This result makes predicting wet and dry years off of the amount of rain per storm in a given year a bit dubious. While the high amount of high-rain storms signaled a high amount of total rain in 1961, the high amount of low-rain storms in 1960 still gave a relatively high total rainfall for the year. Similarly, 1964 having more low-rain days led to the total yearly rainfall being low, while the high amount of high-rain days for 1963 still led to low low total yearly rainfall.
+
+Thus, it would appear that amount of rain per storm is important to determining wet and dry years, the amount of storms is equally if not more important. For instance, 1960 had the second most amount of rainy days, meaning that all of the low-rain storms added up to high amount of total rain on the year. In a similar manner, despite 1963 having a good amount of high-rain storms, it had the least amount of rainy days over the 5 years, dragging the total yearly rainfall down.
+
+Overall, while these results are interesting, their generalization must be taken with caution. The data from the study is still rather small in size, consisting of only 5 consecutive years in an isolated region. Importantly, this data is also from about 60 years, with the state of the globe's climate changing dramatically within that time frame. However, the use of the weibull distribution (or even the gamma distribution) may still be valid to this day, as rain measurement systems still remain mostly the same, and the distribution of rainfall may still follow a similar trend.
+
+A good next step for this analysis may be to repeat the study on some more current rain data. New data could be sampled, or it could be extracted from previous years from local weather stations. By doing this, we could see if the weibull distribution and the parameters still suffice, or if they could be updated for today's standards. More areas' rainfalls could also be studied, to see if the distribution is generalizable or is specific to certain climates. One would think regions more tropical than Illinois may have differing rainfall patterns, but evidence of the contrary would certainly be interesting.
+
+For this final project overall, I learned more about estimating the distributions of functions based off empirical evidence. I also was able to practice evaluating models on different scales, and looking at the big picture in order to make decisions and analyses. In the future, I'll learn about more distributions, so as to better recognize them off empirical data in the future. I am also now more curious about estimation of parameters, and how the changes in their values may alter the distribution, and thus how we understand the data. To help with this, I may take on some projects in my own time, or at least be more aware of the subject in future work. I would also like to spend more time in the future understanding likelihood. Something I would probably do differently is spend some more time researching the topic before jumping into analysis.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
